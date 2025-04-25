@@ -13,10 +13,10 @@ ADMIN_CHAT_ID = int(os.getenv("ADMIN_CHAT_ID", "123456789"))
 
 # === Стани ===
 (
-    CHOOSING, DATE, CURRENCY, CAR_RENTAL, MAINTENANCE, CLIENT_PURCHASES,
+    CHOOSING, DATE, CAR_RENTAL, MAINTENANCE, CLIENT_PURCHASES,
     ROAD_FUEL, FERRY, PHONE, ADVERTISING, FOOD_HOME,
     SHOPPING_HOME, BORDER, NOVA_POSHTA, TOTAL_INCOME
-) = range(15)
+) = range(14)
 
 MAIN_MENU = ReplyKeyboardMarkup(
     [["Внести витрати/дохід"]],
@@ -42,15 +42,6 @@ async def get_field(update: Update, context: ContextTypes.DEFAULT_TYPE, key: str
 
 async def get_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['date'] = update.message.text.strip()
-    await update.message.reply_text("Введіть валюту доходу (USD, EUR, SEK, NOK):")
-    return CURRENCY
-
-async def get_currency(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    currency = update.message.text.strip().upper()
-    if currency not in ["USD", "EUR", "SEK", "NOK"]:
-        await update.message.reply_text("Валюта має бути одна з: USD, EUR, SEK, NOK. Спробуйте ще раз.")
-        return CURRENCY
-    context.user_data['currency'] = currency
     await update.message.reply_text("Оренда авто (грн):")
     return CAR_RENTAL
 
@@ -102,7 +93,6 @@ async def get_total_income(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Збереження у файл
     trip_date = context.user_data['date']
-    currency = context.user_data['currency']
     filename = f"finance_{trip_date}.csv"
     file_exists = os.path.exists(filename)
 
@@ -110,13 +100,13 @@ async def get_total_income(update: Update, context: ContextTypes.DEFAULT_TYPE):
         writer = csv.writer(file)
         if not file_exists:
             writer.writerow([
-                "Дата", "Валюта", "Оренда авто", "Обслуговування", "Клієнтські покупки",
+                "Дата", "Оренда авто", "Обслуговування", "Клієнтські покупки",
                 "Дорога+паливо", "Паром", "Телефон", "Реклама", "Продукти додому",
                 "Покупки додому", "Кордон", "Нова Пошта", "Прибуток",
                 "Витрати", "Чистий дохід", "Дата запису"
             ])
         writer.writerow([
-            trip_date, currency, context.user_data['car_rental'], context.user_data['maintenance'],
+            trip_date, context.user_data['car_rental'], context.user_data['maintenance'],
             context.user_data['client_purchases'], context.user_data['road_fuel'],
             context.user_data['ferry'], context.user_data['phone'], context.user_data['advertising'],
             context.user_data['food_home'], context.user_data['shopping_home'],
@@ -125,10 +115,9 @@ async def get_total_income(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ])
 
     await update.message.reply_text(
-        f"✅ Записано!\nВалюта: {currency}\n"
-        f"Загальні витрати: {expenses:.2f} {currency}\n"
-        f"Загальний прибуток: {income:.2f} {currency}\n"
-        f"Чистий дохід: {net_income:.2f} {currency}"
+        f"✅ Записано!\nЗагальні витрати: {expenses:.2f} грн\n"
+        f"Загальний прибуток: {income:.2f} грн\n"
+        f"Чистий дохід: {net_income:.2f} грн"
     )
 
     await context.bot.send_document(
@@ -149,7 +138,6 @@ if __name__ == "__main__":
         states={
             CHOOSING: [MessageHandler(filters.TEXT & ~filters.COMMAND, choose_action)],
             DATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_date)],
-            CURRENCY: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_currency)],
             CAR_RENTAL: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_car_rental)],
             MAINTENANCE: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_maintenance)],
             CLIENT_PURCHASES: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_client_purchases)],
